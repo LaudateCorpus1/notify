@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/syncthing/notify"
+	"github.com/kiteco/notify"
 )
 
 // This example shows how to watch changes made on file-system by text editor
