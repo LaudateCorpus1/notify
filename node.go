@@ -8,6 +8,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+
+	"github.com/kiteco/notify/readdir"
 )
 
 var errSkip = errors.New("notify: skip")
@@ -77,26 +79,17 @@ Traverse:
 		}
 		// TODO(rjeczalik): tolerate open failures - add failed names to
 		// AddDirError and notify users which names are not added to the tree.
-		f, err := os.Open(nd.Name)
-		if err != nil {
-			return err
-		}
-		names, err := f.Readdirnames(-1)
-		f.Close()
-		if err != nil {
-			return err
-		}
-		for _, name := range names {
-			name = filepath.Join(nd.Name, name)
-			if doNotWatch != nil && doNotWatch(name) {
-				continue
-			}
-			fi, err := os.Lstat(name)
-			if err != nil {
-				return err
-			}
-			if fi.Mode()&(os.ModeSymlink|os.ModeDir) == os.ModeDir {
-				stack = append(stack, nd.addchild(name, name[len(nd.Name)+1:]))
+		// use an optimized version of readdir for this
+		if entries := readdir.List(nd.Name); entries != nil {
+			for _, e := range entries {
+				if e.IsDir {
+					name := filepath.Join(nd.Name, e.Path)
+					if doNotWatch != nil && doNotWatch(name) {
+						continue
+					}
+
+					stack = append(stack, nd.addchild(name, name[len(nd.Name)+1:]))
+				}
 			}
 		}
 	}
